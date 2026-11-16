@@ -1,59 +1,49 @@
 name: Build wlan-sec-test-tool
-# 触发规则：
-# 1. 推送到main分支自动打包
-# 2. 支持手动点击按钮随时打包（workflow_dispatch）
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  # ========= Windows 打包任务 =========
   build-windows:
-    runs-on: windows-latest   # 使用微软Windows云端虚拟机
+    runs-on: windows-latest
     steps:
-      # 步骤1：拉取仓库全部代码
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 步骤2：配置Python环境
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip' # 缓存pip包，下次打包更快
+          cache: 'pip'
 
-      # 步骤3：安装Windows平台依赖 + PyInstaller打包工具
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_win.txt
           pip install pyinstaller
 
-      # 步骤4：打包GUI图形版（-w 关闭黑窗口，GUI程序必须加）
+      # 打包GUI：移除 -F，不打包成单文件
       - name: Build GUI program
         run: |
-          pyinstaller -F -w `
+          pyinstaller -w `
             --add-data "wlan_sec_test_tool_gui.ui;." `
             --noconsole `
             -n wlan-sec-test-tool-GUI `
             wlan_sec_test_tool_gui.py
 
-      # 步骤5：打包CLI命令行版（保留控制台窗口，去掉-w）
       - name: Build CLI program
         run: |
           pyinstaller -F `
             -n wlan-sec-test-tool-CLI `
             wlan_sec_test_tool_cli.py
 
-      # 步骤6：上传打包产物，打包完成后可以下载
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Windows-build-output
-          path: dist/*.exe
+          path: dist/
 
-  # ========= Ubuntu Linux 打包任务 =========
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -76,7 +66,7 @@ jobs:
 
       - name: Build GUI
         run: |
-          pyinstaller -F -w \
+          pyinstaller -w \
             --add-data "wlan_sec_test_tool_gui.ui:." \
             --noconsole \
             -n wlan-sec-test-tool-GUI \
@@ -91,32 +81,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Linux-build-output
-          path: dist/*
-
-  # ========= macOS打包（可选，如果你需要Mac版本就放开注释 =========
-  # build-macos:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up Python 3.11
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.11"
-  #         cache: 'pip'
-  #     - name: Install deps
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install -r requirements_macos.txt
-  #         pip install pyinstaller
-  #     - name: Build
-  #       run: |
-  #         pyinstaller -F -w \
-  #           --add-data "wlan_sec_test_tool_gui.ui:." \
-  #           --noconsole \
-  #           -n wlan-sec-test-tool-GUI \
-  #           wlan_sec_test_tool_gui.py
-  #     - name: Upload Mac artifacts
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Mac-build-output
-  #         path: dist/*
+          path: dist/
